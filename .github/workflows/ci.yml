@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+          - os: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: windows-latest
+            compiler: msvc
+            cc: cl
+            cxx: cl
+          - os: windows-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+
+    steps:
+      - name: Pull repo
+        uses: actions/checkout@v4
+
+      - name: Setup compiler
+        if: runner.os == 'Linux' && matrix.compiler == 'clang'
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      - name: Setup compiler
+        if: runner.os == 'Windows' && matrix.compiler == 'clang'
+        uses: egor-tensin/setup-clang@v1
+
+      - name: Cmake build
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake -S . -B _build -DCMAKE_INSTALL_PREFIX=_install
+
+      - name: Build project
+        run: cmake --build _build --config Release
+
+      - name: Install target
+        run: cmake --install _build --prefix _install
